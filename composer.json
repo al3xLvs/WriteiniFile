@@ -26,6 +26,8 @@
         "php": "^8.2"
     },
     "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "phpstan/phpstan": "^2.0",
         "phpunit/phpunit": "^11.5 || ^12.0 || ^13.0"
     },
     "autoload": {
@@ -42,6 +44,9 @@
         "sort-packages": true
     },
     "scripts": {
-        "test": "phpunit"
+        "test": "phpunit",
+        "analyse": "phpstan analyse",
+        "cs": "php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "php-cs-fixer fix"
     }
 }
