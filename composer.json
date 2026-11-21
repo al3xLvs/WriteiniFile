@@ -33,6 +33,11 @@
             "WriteiniFile\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "WriteiniFile\\Tests\\": "tests/"
+        }
+    },
     "config": {
         "sort-packages": true
     },

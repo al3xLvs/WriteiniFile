@@ -3,4 +3,3 @@
 /phpunit.xml
 /.phpunit.cache/
 /coverage/
-/tests/file_ini/*_test.ini

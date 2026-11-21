@@ -1,29 +1,50 @@
 <?php
 
-use PHPUnit\Framework\TestCase;
+declare(strict_types=1);
+
+namespace WriteiniFile\Tests;
+
+use WriteiniFile\IniFileException;
 use WriteiniFile\ReadiniFile;
 
-class ReadiniFileTest extends TestCase
+final class ReadiniFileTest extends TestCase
 {
-    public function testFileiniDoesnotExist()
+    public function testGet(): void
     {
-        try {
-            ReadiniFile::get('tests/file_ini/fileDoesnotExist.ini');
-        } catch (\Exception $error) {
-        }
-
-        $this->assertEquals('File ini does not exist: tests/file_ini/fileDoesnotExist.ini', $error->getMessage());
+        $this->assertSame(
+            [
+                'title' => 'Demo',
+                'database' => ['host' => 'localhost', 'port' => '3306'],
+            ],
+            ReadiniFile::get($this->fixture('GlobalsAndSections.ini'))
+        );
     }
 
-    public function testUnabletoParseFileini()
+    public function testGetTyped(): void
     {
-        try {
-            chmod('tests/file_ini/CorruptiniFile.ini', 0000);
-            ReadiniFile::get('tests/file_ini/CorruptiniFile.ini');
-            chmod('tests/file_ini/CorruptiniFile.ini', 0644);
-        } catch (\Exception $error) {
-        }
+        $data = ReadiniFile::get($this->fixture('GlobalsAndSections.ini'), INI_SCANNER_TYPED);
 
-        $this->assertEquals('Unable to parse file ini: tests/file_ini/CorruptiniFile.ini', $error->getMessage());
+        $this->assertIsArray($data['database']);
+        $this->assertSame(3306, $data['database']['port']);
+    }
+
+    public function testFileDoesNotExist(): void
+    {
+        $path = $this->tmpFile('missing.ini');
+
+        $this->expectException(IniFileException::class);
+        $this->expectExceptionMessage('File ini does not exist: '.$path);
+
+        ReadiniFile::get($path);
+    }
+
+    public function testUnableToParse(): void
+    {
+        $path = $this->fixture('CorruptiniFile.ini');
+
+        $this->expectException(IniFileException::class);
+        $this->expectExceptionMessage('Unable to parse file ini: '.$path);
+
+        ReadiniFile::get($path);
     }
 }
