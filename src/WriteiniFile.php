@@ -66,13 +66,14 @@ class WriteiniFile
     }
 
     /**
-     * Removes the given keys, whatever their values. A section is removed when it becomes empty.
+     * Removes the given keys, whatever their values. A section is removed when it becomes empty,
+     * or entirely when its key is given with a non-array value.
      *
      * @param array<array-key, mixed> $data
      */
     public function rm(array $data): static
     {
-        $this->data = self::arrayDiffRecursive($this->data, $data);
+        $this->data = self::arrayDiffKeyRecursive($this->data, $data);
 
         return $this;
     }
@@ -165,7 +166,7 @@ class WriteiniFile
      *
      * @return array<array-key, mixed>
      */
-    private static function arrayDiffRecursive(array $array1, array $array2): array
+    private static function arrayDiffKeyRecursive(array $array1, array $array2): array
     {
         $result = [];
 
@@ -175,8 +176,8 @@ class WriteiniFile
                 continue;
             }
 
-            if (is_array($value)) {
-                $diff = self::arrayDiffRecursive($value, $array2[$key]);
+            if (is_array($value) && is_array($array2[$key])) {
+                $diff = self::arrayDiffKeyRecursive($value, $array2[$key]);
 
                 if ($diff !== []) {
                     $result[$key] = $diff;

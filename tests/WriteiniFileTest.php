@@ -73,6 +73,15 @@ final class WriteiniFileTest extends TestCase
         $this->assertFileEquals($this->fixture('Rm.ini'), $path);
     }
 
+    public function testRmWholeSection(): void
+    {
+        $path = $this->tmpFile('test.ini', 'GlobalsAndSections.ini');
+
+        (new WriteiniFile($path))->rm(['database' => true])->write();
+
+        $this->assertSame("title=Demo\n", file_get_contents($path));
+    }
+
     public function testErase(): void
     {
         $path = $this->tmpFile('test.ini');
