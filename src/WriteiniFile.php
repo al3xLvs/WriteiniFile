@@ -92,29 +92,57 @@ class WriteiniFile
      */
     public function write(): bool
     {
-        $content = '';
-
-        foreach ($this->data as $section => $entries) {
-            $content .= PHP_EOL.'['.$section.']'.PHP_EOL;
-
-            foreach ($entries as $key => $value) {
-                if (is_array($value)) {
-                    foreach ($value as $subKey => $subValue) {
-                        $content .= $key.'['.$subKey.']='.self::encode($subValue).PHP_EOL;
-                    }
-                } else {
-                    $content .= $key.'='.self::encode($value).PHP_EOL;
-                }
-            }
-        }
-
-        $content = preg_replace('#^'.PHP_EOL.'#', '', $content);
+        $content = $this->render();
 
         if (@file_put_contents($this->path, $content) === false) {
             throw IniFileException::unableToWrite($this->path);
         }
 
         return true;
+    }
+
+    private function render(): string
+    {
+        $globals = [];
+        $sections = [];
+
+        foreach ($this->data as $key => $value) {
+            if (is_array($value)) {
+                $sections[$key] = $value;
+            } else {
+                $globals[$key] = $value;
+            }
+        }
+
+        // Keys outside any section must come first, otherwise they would end up in the previous section.
+        $blocks = $globals === [] ? [] : [self::renderEntries($globals)];
+
+        foreach ($sections as $name => $entries) {
+            $blocks[] = '['.$name.']'.PHP_EOL.self::renderEntries($entries);
+        }
+
+        return implode(PHP_EOL, $blocks);
+    }
+
+    /**
+     * @param array<array-key, mixed> $entries
+     */
+    private static function renderEntries(array $entries): string
+    {
+        $content = '';
+
+        foreach ($entries as $key => $value) {
+            if (!is_array($value)) {
+                $content .= $key.'='.self::encode($value).PHP_EOL;
+                continue;
+            }
+
+            foreach ($value as $subKey => $subValue) {
+                $content .= $key.'['.$subKey.']='.self::encode($subValue).PHP_EOL;
+            }
+        }
+
+        return $content;
     }
 
     private static function encode(mixed $value): string

@@ -122,6 +122,15 @@ final class WriteiniFileTest extends TestCase
         $this->assertFileEquals($this->fixture('UnchangeData.ini'), $path);
     }
 
+    public function testGlobalKeysAreWrittenBeforeSections(): void
+    {
+        $path = $this->tmpFile('test.ini', 'GlobalsAndSections.ini');
+
+        (new WriteiniFile($path))->add(['debug' => 'true'])->write();
+
+        $this->assertFileEquals($this->fixture('GlobalsAndSectionsAdd.ini'), $path);
+    }
+
     public function testParseCorruptFile(): void
     {
         $path = $this->fixture('CorruptiniFile.ini');
