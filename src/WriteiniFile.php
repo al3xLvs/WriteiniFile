@@ -1,191 +1,159 @@
 <?php
 
+declare(strict_types=1);
+
 namespace WriteiniFile;
 
 /**
- * Class WriteiniFile.
+ * Creates or edits an ini file.
  */
 class WriteiniFile
 {
     /**
-     * @var string $path_to_ini_file
+     * @var array<array-key, mixed>
      */
-    protected $path_to_ini_file;
+    private array $data;
 
     /**
-     * @var array $data_ini_file
-     */
-    protected $data_ini_file;
-
-    /**
-     * Constructor.
+     * @param string $path        Path of the ini file. It is created on write() if it does not exist.
+     * @param int    $scannerMode INI_SCANNER_RAW, INI_SCANNER_TYPED or INI_SCANNER_NORMAL
      *
-     * @param string $ini_file
-     * @param int    $scanner_mode scanner mode INI_SCANNER_RAW, INI_SCANNER_TYPED or INI_SCANNER_NORMAL
+     * @throws IniFileException if the file exists but cannot be parsed
      */
-    public function __construct($ini_file, $scanner_mode = INI_SCANNER_RAW)
-    {
-        $this->path_to_ini_file = $ini_file;
-
-        if (file_exists($this->path_to_ini_file) === true) {
-            $this->data_ini_file = @parse_ini_file($this->path_to_ini_file, true, $scanner_mode);
-        } else {
-            $this->data_ini_file = [];
-        }
-
-        if ($this->data_ini_file === false) {
-            throw new \Exception(sprintf('Unable to parse file ini: %s', $this->path_to_ini_file));
-        }
+    public function __construct(
+        private readonly string $path,
+        int $scannerMode = INI_SCANNER_RAW,
+    ) {
+        $this->data = file_exists($path) ? ReadiniFile::get($path, $scannerMode) : [];
     }
 
     /**
-     * method for change value in the ini file.
+     * Replaces the whole content of the ini file.
      *
-     * @param array $new_value
-     *
-     * @return $this
+     * @param array<array-key, mixed> $data
      */
-    public function update(array $new_value)
+    public function create(array $data): static
     {
-        $this->data_ini_file = array_replace_recursive($this->data_ini_file, $new_value);
+        $this->data = $data;
 
         return $this;
     }
 
     /**
-     * method for create ini file.
+     * Changes existing values and adds the missing ones.
      *
-     * @param array $new_ini_file
-     *
-     * @return $this
+     * @param array<array-key, mixed> $data
      */
-    public function create(array $new_ini_file)
+    public function update(array $data): static
     {
-        $this->data_ini_file = $new_ini_file;
+        $this->data = array_replace_recursive($this->data, $data);
 
         return $this;
     }
 
     /**
-     * method for erase ini file.
+     * Adds values. A key that already exists keeps its value and gets the new one too, as an array.
      *
-     * @return $this
+     * @param array<array-key, mixed> $data
      */
-    public function erase()
+    public function add(array $data): static
     {
-        $this->data_ini_file = [];
+        $this->data = array_merge_recursive($this->data, $data);
 
         return $this;
     }
 
     /**
-     * method for add new value in the ini file.
+     * Removes the given keys, whatever their values. A section is removed when it becomes empty.
      *
-     * @param array $add_new_value
-     *
-     * @return $this
+     * @param array<array-key, mixed> $data
      */
-    public function add(array $add_new_value)
+    public function rm(array $data): static
     {
-        $this->data_ini_file = array_merge_recursive($this->data_ini_file, $add_new_value);
+        $this->data = self::arrayDiffRecursive($this->data, $data);
 
         return $this;
     }
 
     /**
-     * method for remove some values in the ini file.
-     *
-     * @param array $rm_value
-     *
-     * @return $this
+     * Removes all the content of the ini file.
      */
-    public function rm(array $rm_value)
+    public function erase(): static
     {
-        $this->data_ini_file = self::arrayDiffRecursive($this->data_ini_file, $rm_value);
+        $this->data = [];
 
         return $this;
     }
 
     /**
-     * method for write data in the ini file.
+     * Writes the data to the ini file.
      *
-     * @return bool
+     * @throws IniFileException if the file cannot be written
      */
-    public function write()
+    public function write(): bool
     {
-        $file_content = '';
+        $content = '';
 
-        foreach ($this->data_ini_file as $key_1 => $groupe) {
-            $file_content .= PHP_EOL.'['.$key_1.']'.PHP_EOL;
-            foreach ($groupe as $key_2 => $value_2) {
-                if (is_array($value_2)) {
-                    foreach ($value_2 as $key_3 => $value_3) {
-                        $file_content .= $key_2.'['.$key_3.']='.self::encode($value_3).PHP_EOL;
+        foreach ($this->data as $section => $entries) {
+            $content .= PHP_EOL.'['.$section.']'.PHP_EOL;
+
+            foreach ($entries as $key => $value) {
+                if (is_array($value)) {
+                    foreach ($value as $subKey => $subValue) {
+                        $content .= $key.'['.$subKey.']='.self::encode($subValue).PHP_EOL;
                     }
                 } else {
-                    $file_content .= $key_2.'='.self::encode($value_2).PHP_EOL;
+                    $content .= $key.'='.self::encode($value).PHP_EOL;
                 }
             }
         }
 
-        $file_content = preg_replace('#^'.PHP_EOL.'#', '', $file_content);
-        $result = @file_put_contents($this->path_to_ini_file, $file_content);
-        if (false === $result) {
-            throw new \Exception(sprintf('Unable to write in the file ini: %s', $this->path_to_ini_file));
+        $content = preg_replace('#^'.PHP_EOL.'#', '', $content);
+
+        if (@file_put_contents($this->path, $content) === false) {
+            throw IniFileException::unableToWrite($this->path);
         }
 
-        return ($result !== false) ? true : false;
+        return true;
+    }
+
+    private static function encode(mixed $value): string
+    {
+        return match (true) {
+            $value === true => 'true',
+            $value === false => 'false',
+            $value === null => 'null',
+            default => (string) $value,
+        };
     }
 
     /**
-     * method for encode type for ini file.
+     * Removes from $array1 the keys found in $array2, recursively.
      *
-     * @param mixed $value
+     * @param array<array-key, mixed> $array1
+     * @param array<array-key, mixed> $array2
      *
-     * @return string
+     * @return array<array-key, mixed>
      */
-    private static function encode($value)
+    private static function arrayDiffRecursive(array $array1, array $array2): array
     {
-        if ($value === true) {
-            return 'true';
-        }
+        $result = [];
 
-        if ($value === false) {
-            return 'false';
-        }
+        foreach ($array1 as $key => $value) {
+            if (!array_key_exists($key, $array2)) {
+                $result[$key] = $value;
+                continue;
+            }
 
-        if ($value === null) {
-            return 'null';
-        }
+            if (is_array($value)) {
+                $diff = self::arrayDiffRecursive($value, $array2[$key]);
 
-        return $value;
-    }
-
-    /**
-     * Computes the difference of 2 arrays recursively
-     * source : http://php.net/manual/en/function.array-diff.php#91756.
-     *
-     * @param array $array1
-     * @param array $array2
-     *
-     * @return array
-     */
-    private static function arrayDiffRecursive(array $array1, array $array2)
-    {
-        $finalArray = [];
-        foreach ($array1 as $KeyArray1 => $ValueArray1) {
-            if (array_key_exists($KeyArray1, $array2)) {
-                if (is_array($ValueArray1)) {
-                    $arrayDiffRecursive = self::arrayDiffRecursive($ValueArray1, $array2[$KeyArray1]);
-                    if (count($arrayDiffRecursive)) {
-                        $finalArray[$KeyArray1] = $arrayDiffRecursive;
-                    }
+                if ($diff !== []) {
+                    $result[$key] = $diff;
                 }
-            } else {
-                $finalArray[$KeyArray1] = $ValueArray1;
             }
         }
 
-        return $finalArray;
+        return $result;
     }
 }
