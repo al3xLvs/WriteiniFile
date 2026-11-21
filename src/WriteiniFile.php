@@ -91,7 +91,7 @@ class WriteiniFile
     /**
      * Writes the data to the ini file.
      *
-     * @throws IniFileException if the file cannot be written
+     * @throws IniFileException if a value cannot be written in ini format or the file cannot be written
      */
     public function write(): bool
     {
@@ -136,25 +136,28 @@ class WriteiniFile
 
         foreach ($entries as $key => $value) {
             if (!is_array($value)) {
-                $content .= $key.'='.self::encode($value).PHP_EOL;
+                $content .= $key.'='.self::encode($value, (string) $key).PHP_EOL;
                 continue;
             }
 
             foreach ($value as $subKey => $subValue) {
-                $content .= $key.'['.$subKey.']='.self::encode($subValue).PHP_EOL;
+                $name = $key.'['.$subKey.']';
+                $content .= $name.'='.self::encode($subValue, $name).PHP_EOL;
             }
         }
 
         return $content;
     }
 
-    private static function encode(mixed $value): string
+    private static function encode(mixed $value, string $key): string
     {
         return match (true) {
             $value === true => 'true',
             $value === false => 'false',
             $value === null => 'null',
-            default => (string) $value,
+            is_string($value) => $value,
+            is_int($value), is_float($value), $value instanceof \Stringable => (string) $value,
+            default => throw IniFileException::unsupportedValue($key),
         };
     }
 

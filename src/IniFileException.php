@@ -23,4 +23,12 @@ class IniFileException extends \RuntimeException
     {
         return new self(sprintf('Unable to write in the file ini: %s', $path));
     }
+
+    public static function unsupportedValue(string $key): self
+    {
+        return new self(sprintf(
+            'Unable to write the value of "%s": ini files only support scalar values and one level of arrays.',
+            $key
+        ));
+    }
 }

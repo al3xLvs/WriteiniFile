@@ -160,6 +160,17 @@ final class WriteiniFileTest extends TestCase
         $this->assertFileEquals($this->fixture('NoSections.ini'), $path);
     }
 
+    public function testUnsupportedValue(): void
+    {
+        $writer = (new WriteiniFile($this->tmpFile('test.ini')))
+            ->create(['section' => ['foo' => ['bar' => ['too deep']]]]);
+
+        $this->expectException(IniFileException::class);
+        $this->expectExceptionMessage('Unable to write the value of "foo[bar]"');
+
+        $writer->write();
+    }
+
     public function testParseCorruptFile(): void
     {
         $path = $this->fixture('CorruptiniFile.ini');
