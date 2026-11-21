@@ -3,9 +3,10 @@
 PHP library to create, read, update, add, remove and erase ini files.
 
 [![CI](https://github.com/al3xLvs/WriteiniFile/actions/workflows/ci.yml/badge.svg)](https://github.com/al3xLvs/WriteiniFile/actions/workflows/ci.yml)
-[![Latest Stable Version](https://poser.pugx.org/magicalex/write-ini-file/v/stable)](https://packagist.org/packages/magicalex/write-ini-file)
-[![Total Downloads](https://poser.pugx.org/magicalex/write-ini-file/downloads)](https://packagist.org/packages/magicalex/write-ini-file)
-[![License](https://poser.pugx.org/magicalex/write-ini-file/license)](https://packagist.org/packages/magicalex/write-ini-file)
+[![Latest Version](https://img.shields.io/packagist/v/magicalex/write-ini-file)](https://packagist.org/packages/magicalex/write-ini-file)
+[![PHP Version](https://img.shields.io/packagist/dependency-v/magicalex/write-ini-file/php)](https://packagist.org/packages/magicalex/write-ini-file)
+[![Total Downloads](https://img.shields.io/packagist/dt/magicalex/write-ini-file)](https://packagist.org/packages/magicalex/write-ini-file)
+[![License](https://img.shields.io/packagist/l/magicalex/write-ini-file)](LICENSE)
 
 ## Installation
 
