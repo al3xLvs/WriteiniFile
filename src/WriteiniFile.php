@@ -113,7 +113,7 @@ class WriteiniFile
      */
     public function write()
     {
-        $file_content = null;
+        $file_content = '';
 
         foreach ($this->data_ini_file as $key_1 => $groupe) {
             $file_content .= PHP_EOL.'['.$key_1.']'.PHP_EOL;
