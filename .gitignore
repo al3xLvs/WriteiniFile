@@ -1,4 +1,6 @@
-vendor
-composer.lock
-coverage
-tests/file_ini/*_test.ini
+/vendor/
+/composer.lock
+/phpunit.xml
+/.phpunit.cache/
+/coverage/
+/tests/file_ini/*_test.ini
