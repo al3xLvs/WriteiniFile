@@ -1,44 +1,35 @@
 <?php
 
+declare(strict_types=1);
+
 namespace WriteiniFile;
 
 /**
- * Class ReadiniFile.
+ * Reads an ini file into an array.
  */
-class ReadiniFile
+final class ReadiniFile
 {
     /**
-     * @var string $path_to_ini_file
-     */
-    protected static $path_to_ini_file;
-
-    /**
-     * @var array $data_ini_file
-     */
-    protected static $data_ini_file;
-
-    /**
-     * method for get data of ini file.
+     * @param string $path            Path of the ini file
+     * @param int    $scannerMode     INI_SCANNER_RAW, INI_SCANNER_TYPED or INI_SCANNER_NORMAL
+     * @param bool   $processSections true to group the values by section, false for an ini file without sections
      *
-     * @param string $ini_file     path of ini file
-     * @param int    $scanner_mode scanner mode INI_SCANNER_RAW INI_SCANNER_TYPED or INI_SCANNER_NORMAL
+     * @return array<array-key, mixed>
      *
-     * @return array ini file data in a array
+     * @throws IniFileException if the file does not exist or cannot be parsed
      */
-    public static function get($ini_file, $scanner_mode = INI_SCANNER_RAW)
+    public static function get(string $path, int $scannerMode = INI_SCANNER_RAW, bool $processSections = true): array
     {
-        self::$path_to_ini_file = $ini_file;
-
-        if (file_exists(self::$path_to_ini_file) === true) {
-            self::$data_ini_file = @parse_ini_file(self::$path_to_ini_file, true, $scanner_mode);
-        } else {
-            throw new \Exception(sprintf('File ini does not exist: %s', self::$path_to_ini_file));
+        if (!is_file($path)) {
+            throw IniFileException::fileNotFound($path);
         }
 
-        if (self::$data_ini_file === false) {
-            throw new \Exception(sprintf('Unable to parse file ini: %s', self::$path_to_ini_file));
+        $data = @parse_ini_file($path, $processSections, $scannerMode);
+
+        if ($data === false) {
+            throw IniFileException::unableToParse($path);
         }
 
-        return self::$data_ini_file;
+        return $data;
     }
 }

@@ -1,132 +1,194 @@
 <?php
 
-use PHPUnit\Framework\TestCase;
+declare(strict_types=1);
+
+namespace WriteiniFile\Tests;
+
+use WriteiniFile\IniFileException;
 use WriteiniFile\ReadiniFile;
 use WriteiniFile\WriteiniFile;
 
-class WriteiniFileTest extends TestCase
+final class WriteiniFileTest extends TestCase
 {
-    private $var = [
+    private const DATA = [
         'section 1' => [
-            'foo'        => 'string',
+            'foo' => 'string',
             'foo_string' => 'string',
-            'bool_true'  => true,
+            'bool_true' => true,
             'bool_false' => false,
-            'int_true'   => 1,
-            'int_false'  => 0,
-            'int'        => 10,
-            'float'      => 10.3,
-            'foo_array'  => [
+            'int_true' => 1,
+            'int_false' => 0,
+            'int' => 10,
+            'float' => 10.3,
+            'foo_array' => [
                 'string',
                 10.3,
                 true,
-                false
-            ]
+                false,
+            ],
         ],
         'section 2' => [
-            'foo'              => 'string',
-            'var'              => 'string string',
-            'bool_true'        => true,
-            'bool_false'       => false,
-            'var_null'         => null,
-            'int_true_string'  => '1',
+            'foo' => 'string',
+            'var' => 'string string',
+            'bool_true' => true,
+            'bool_false' => false,
+            'var_null' => null,
+            'int_true_string' => '1',
             'int_false_string' => '0',
-            'float_string'     => '10.5L',
-            'empty_string'     => ''
-        ]
+            'float_string' => '10.5L',
+            'empty_string' => '',
+        ],
     ];
 
-    public function testCreate()
+    public function testCreate(): void
     {
-        (new WriteiniFile('tests/file_ini/Create_test.ini'))->create($this->var)->write();
+        $path = $this->tmpFile('test.ini');
 
-        $this->assertFileEquals('tests/file_ini/Create.ini', 'tests/file_ini/Create_test.ini');
+        $this->assertTrue((new WriteiniFile($path))->create(self::DATA)->write());
+
+        $this->assertFileEquals($this->fixture('Create.ini'), $path);
     }
 
-    public function testUpdate()
+    public function testUpdate(): void
     {
-        (new WriteiniFile('tests/file_ini/Update_test.ini'))
-            ->create($this->var)
+        $path = $this->tmpFile('test.ini');
+
+        (new WriteiniFile($path))
+            ->create(self::DATA)
             ->update(['section 1' => ['foo' => 'bar', 'int' => 100]])
             ->write();
 
-        $this->assertFileEquals('tests/file_ini/Update.ini', 'tests/file_ini/Update_test.ini');
+        $this->assertFileEquals($this->fixture('Update.ini'), $path);
     }
 
-    public function testRm()
+    public function testRm(): void
     {
-        (new WriteiniFile('tests/file_ini/Rm_test.ini'))
-            ->create($this->var)
+        $path = $this->tmpFile('test.ini');
+
+        (new WriteiniFile($path))
+            ->create(self::DATA)
             ->rm(['section 1' => ['foo' => 'string', 'int' => 10]])
             ->write();
 
-        $this->assertFileEquals('tests/file_ini/Rm.ini', 'tests/file_ini/Rm_test.ini');
+        $this->assertFileEquals($this->fixture('Rm.ini'), $path);
     }
 
-    public function testErase()
+    public function testRmWholeSection(): void
     {
-        (new WriteiniFile('tests/file_ini/Erase_test.ini'))->create($this->var)->write();
-        (new WriteiniFile('tests/file_ini/Erase_test.ini'))->erase()->write();
+        $path = $this->tmpFile('test.ini', 'GlobalsAndSections.ini');
 
-        $this->assertFileEquals('tests/file_ini/Erase.ini', 'tests/file_ini/Erase_test.ini');
+        (new WriteiniFile($path))->rm(['database' => true])->write();
+
+        $this->assertSame("title=Demo\n", file_get_contents($path));
     }
 
-    public function testAdd()
+    public function testErase(): void
     {
-        (new WriteiniFile('tests/file_ini/Add_test.ini'))
-            ->create($this->var)
+        $path = $this->tmpFile('test.ini');
+
+        (new WriteiniFile($path))->create(self::DATA)->write();
+        (new WriteiniFile($path))->erase()->write();
+
+        $this->assertFileEquals($this->fixture('Erase.ini'), $path);
+    }
+
+    public function testAdd(): void
+    {
+        $path = $this->tmpFile('test.ini');
+
+        (new WriteiniFile($path))
+            ->create(self::DATA)
             ->add(['section 3' => ['foo' => 'bar', 'var_float' => 10.5]])
             ->write();
 
-        $this->assertFileEquals('tests/file_ini/Add.ini', 'tests/file_ini/Add_test.ini');
+        $this->assertFileEquals($this->fixture('Add.ini'), $path);
     }
 
-    public function testEscapeCharacters()
+    public function testEscapeCharacters(): void
     {
-        (new WriteiniFile('tests/file_ini/EscapeCharacters_test.ini'))
+        $path = $this->tmpFile('test.ini');
+
+        (new WriteiniFile($path))
             ->create([
                 'section 1' => [
                     'foo' => '/usr/bin/example --name="Greg\'s test" --output=./dist/',
-                    'bar' => 'Exclamation!question?period.'
-                ]
+                    'bar' => 'Exclamation!question?period.',
+                ],
             ])
             ->write();
 
-        $this->assertFileEquals('tests/file_ini/EscapeCharacters.ini', 'tests/file_ini/EscapeCharacters_test.ini');
+        $this->assertFileEquals($this->fixture('EscapeCharacters.ini'), $path);
     }
 
-    public function testUnchangeData()
+    public function testUnchangedData(): void
     {
-        (new WriteiniFile('tests/file_ini/UnchangeData_test.ini'))
-            ->create(ReadiniFile::get('tests/file_ini/UnchangeData.ini'))
+        $path = $this->tmpFile('test.ini');
+
+        (new WriteiniFile($path))
+            ->create(ReadiniFile::get($this->fixture('UnchangeData.ini')))
             ->write();
 
-        $this->assertFileEquals('tests/file_ini/UnchangeData.ini', 'tests/file_ini/UnchangeData_test.ini');
+        $this->assertFileEquals($this->fixture('UnchangeData.ini'), $path);
     }
 
-    public function testParseWithCorruptiniFile()
+    public function testGlobalKeysAreWrittenBeforeSections(): void
     {
-        try {
-            chmod('tests/file_ini/CorruptiniFile.ini', 0000);
-            (new WriteiniFile('tests/file_ini/CorruptiniFile.ini'));
-            chmod('tests/file_ini/CorruptiniFile.ini', 0644);
-        } catch (\Exception $error) {
-        }
+        $path = $this->tmpFile('test.ini', 'GlobalsAndSections.ini');
 
-        $this->assertEquals('Unable to parse file ini: tests/file_ini/CorruptiniFile.ini', $error->getMessage());
+        (new WriteiniFile($path))->add(['debug' => 'true'])->write();
+
+        $this->assertFileEquals($this->fixture('GlobalsAndSectionsAdd.ini'), $path);
     }
 
-    public function testWriteinCorruptiniFile()
+    public function testWithoutSections(): void
     {
-        try {
-            chmod('tests/file_ini/CorruptiniFile.ini', 0644);
-            $test = (new WriteiniFile('tests/file_ini/CorruptiniFile.ini'))->create(['section 1' => ['foo' => 'string']]);
-            chmod('tests/file_ini/CorruptiniFile.ini', 0000);
-            $test->write();
-            chmod('tests/file_ini/CorruptiniFile.ini', 0644);
-        } catch (\Exception $error) {
-        }
+        $path = $this->tmpFile('test.ini', 'NoSections.ini');
 
-        $this->assertEquals('Unable to write in the file ini: tests/file_ini/CorruptiniFile.ini', $error->getMessage());
+        (new WriteiniFile($path, processSections: false))
+            ->update(['debug' => true, 'version' => 2])
+            ->write();
+
+        $this->assertFileEquals($this->fixture('NoSectionsUpdate.ini'), $path);
+    }
+
+    public function testWithoutSectionsRoundTrip(): void
+    {
+        $path = $this->tmpFile('test.ini', 'NoSections.ini');
+
+        (new WriteiniFile($path, processSections: false))->write();
+
+        $this->assertFileEquals($this->fixture('NoSections.ini'), $path);
+    }
+
+    public function testUnsupportedValue(): void
+    {
+        $writer = (new WriteiniFile($this->tmpFile('test.ini')))
+            ->create(['section' => ['foo' => ['bar' => ['too deep']]]]);
+
+        $this->expectException(IniFileException::class);
+        $this->expectExceptionMessage('Unable to write the value of "foo[bar]"');
+
+        $writer->write();
+    }
+
+    public function testParseCorruptFile(): void
+    {
+        $path = $this->fixture('CorruptiniFile.ini');
+
+        $this->expectException(IniFileException::class);
+        $this->expectExceptionMessage('Unable to parse file ini: '.$path);
+
+        new WriteiniFile($path);
+    }
+
+    public function testUnableToWrite(): void
+    {
+        $path = $this->tmpFile('missing-directory/test.ini');
+        $writer = (new WriteiniFile($path))->create(['section 1' => ['foo' => 'string']]);
+
+        $this->expectException(IniFileException::class);
+        $this->expectExceptionMessage('Unable to write in the file ini: '.$path);
+
+        $writer->write();
     }
 }
