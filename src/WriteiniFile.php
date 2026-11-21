@@ -15,16 +15,18 @@ class WriteiniFile
     private array $data;
 
     /**
-     * @param string $path        Path of the ini file. It is created on write() if it does not exist.
-     * @param int    $scannerMode INI_SCANNER_RAW, INI_SCANNER_TYPED or INI_SCANNER_NORMAL
+     * @param string $path            Path of the ini file. It is created on write() if it does not exist.
+     * @param int    $scannerMode     INI_SCANNER_RAW, INI_SCANNER_TYPED or INI_SCANNER_NORMAL
+     * @param bool   $processSections true to group the values by section, false for an ini file without sections
      *
      * @throws IniFileException if the file exists but cannot be parsed
      */
     public function __construct(
         private readonly string $path,
         int $scannerMode = INI_SCANNER_RAW,
+        private readonly bool $processSections = true,
     ) {
-        $this->data = file_exists($path) ? ReadiniFile::get($path, $scannerMode) : [];
+        $this->data = file_exists($path) ? ReadiniFile::get($path, $scannerMode, $processSections) : [];
     }
 
     /**
@@ -107,7 +109,7 @@ class WriteiniFile
         $sections = [];
 
         foreach ($this->data as $key => $value) {
-            if (is_array($value)) {
+            if ($this->processSections && is_array($value)) {
                 $sections[$key] = $value;
             } else {
                 $globals[$key] = $value;

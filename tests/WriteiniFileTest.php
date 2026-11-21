@@ -131,6 +131,26 @@ final class WriteiniFileTest extends TestCase
         $this->assertFileEquals($this->fixture('GlobalsAndSectionsAdd.ini'), $path);
     }
 
+    public function testWithoutSections(): void
+    {
+        $path = $this->tmpFile('test.ini', 'NoSections.ini');
+
+        (new WriteiniFile($path, processSections: false))
+            ->update(['debug' => true, 'version' => 2])
+            ->write();
+
+        $this->assertFileEquals($this->fixture('NoSectionsUpdate.ini'), $path);
+    }
+
+    public function testWithoutSectionsRoundTrip(): void
+    {
+        $path = $this->tmpFile('test.ini', 'NoSections.ini');
+
+        (new WriteiniFile($path, processSections: false))->write();
+
+        $this->assertFileEquals($this->fixture('NoSections.ini'), $path);
+    }
+
     public function testParseCorruptFile(): void
     {
         $path = $this->fixture('CorruptiniFile.ini');

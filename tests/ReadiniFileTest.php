@@ -28,6 +28,18 @@ final class ReadiniFileTest extends TestCase
         $this->assertSame(3306, $data['database']['port']);
     }
 
+    public function testGetWithoutSections(): void
+    {
+        $this->assertSame(
+            [
+                'name' => 'WriteiniFile',
+                'debug' => 'false',
+                'paths' => ['/usr/bin', '/usr/local/bin'],
+            ],
+            ReadiniFile::get($this->fixture('NoSections.ini'), processSections: false)
+        );
+    }
+
     public function testFileDoesNotExist(): void
     {
         $path = $this->tmpFile('missing.ini');
